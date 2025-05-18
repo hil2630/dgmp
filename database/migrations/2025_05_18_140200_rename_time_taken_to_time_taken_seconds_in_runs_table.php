@@ -1,0 +1,22 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('runs', function (Blueprint $table) {
+            $table->renameColumn('time_taken', 'time_taken_seconds');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('runs', function (Blueprint $table) {
+            $table->renameColumn('time_taken_seconds', 'time_taken');
+        });
+    }
+};
