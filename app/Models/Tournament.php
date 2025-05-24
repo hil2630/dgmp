@@ -10,6 +10,7 @@ class Tournament extends Model
     use HasFactory;
 
     protected $fillable = [
+        'season_id',
         'name',
         'type', // 'main' or 'on_day'
         'date',

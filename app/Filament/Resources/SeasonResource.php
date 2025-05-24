@@ -38,12 +38,12 @@ class SeasonResource extends Resource
                     ->default(false),
                 Forms\Components\Select::make('status')
                     ->options([
-                        'pending' => 'Pending',
+                        'upcoming' => 'Upcoming',
                         'active' => 'Active',
                         'completed' => 'Completed',
                     ])
                     ->required()
-                    ->default('pending'),
+                    ->default('upcoming'),
                 Forms\Components\Select::make('winner_team_id')
                     ->relationship('winner', 'name')
                     ->searchable()
@@ -70,7 +70,7 @@ class SeasonResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'active' => 'success',
-                        'pending' => 'warning',
+                        'upcoming' => 'warning',
                         'completed' => 'danger',
                     }),
                 Tables\Columns\TextColumn::make('winner.name')
@@ -87,7 +87,7 @@ class SeasonResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'pending' => 'Pending',
+                        'upcoming' => 'Upcoming',
                         'active' => 'Active',
                         'completed' => 'Completed',
                     ]),

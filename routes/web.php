@@ -9,15 +9,32 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\SeasonController;
 use App\Models\Team;
 use App\Models\Season;
+use App\Models\Donation;
+use App\Models\Tournament;
 use App\Http\Controllers\DonationController;
+use App\Http\Controllers\RunController;
 
 Route::get('/', function () {
+    // Get current active season
+    $currentSeason = Season::where('status', 'active')->first();
+
+    $totalPrizePool = 0;
+
+    // Get total donations for prize pool (tournament prize pools are used for something else)
+    try {
+        $totalPrizePool = Donation::sum('amount');
+    } catch (\Exception $e) {
+        // If donations table doesn't exist, keep at 0
+        $totalPrizePool = 0;
+    }
+
     return Inertia::render('Welcome', [
         'canLogin' => false,
         'canRegister' => false,
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
         'seasons' => Season::where('status', 'active')->get(),
+        'totalPrizePool' => $totalPrizePool,
     ]);
 });
 
@@ -62,6 +79,8 @@ Route::middleware([
 
     Route::post('/seasons/{season}/signup', [SeasonController::class, 'signup'])->name('seasons.signup');
     Route::post('/seasons/{season}/remove-signup', [SeasonController::class, 'removeSignup'])->name('seasons.remove-signup');
+
+    Route::post('/runs', [RunController::class, 'store'])->name('runs.store');
 
     Route::put('/teams/{team}/members/{user}', [\App\Http\Controllers\TeamController::class, 'updateMemberRole'])->name('team-members.update');
 });

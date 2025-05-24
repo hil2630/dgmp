@@ -50,9 +50,9 @@ class DonationController extends Controller
             ->where('status', 'upcoming')
             ->get();
 
-        // Calculate total prize pool
-        $totalPrizePool = $mainTournament ? $mainTournament->prize_pool : 0;
-        $totalPrizePool += $onDayTournaments->sum('prize_pool');
+        // Calculate total prize pool from donations only
+        $totalDonations = Donation::sum('amount');
+        $totalPrizePool = $totalDonations;
 
         // Get top donators
         $topDonators = Donation::with('user')

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RunResource\Pages;
 use App\Filament\Resources\RunResource\RelationManagers;
 use App\Models\Run;
+use App\Services\DiscordNotificationService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -42,19 +43,29 @@ class RunResource extends Resource
                     ->required()
                     ->numeric()
                     ->minValue(1),
-                Forms\Components\DateTimePicker::make('completed_at')
-                    ->required(),
                 Forms\Components\TextInput::make('time_taken_seconds')
                     ->required()
                     ->numeric()
                     ->label('Time Taken (seconds)')
                     ->minValue(1),
+                Forms\Components\TextInput::make('warcraft_log_url')
+                    ->label('Warcraft Log URL')
+                    ->url()
+                    ->placeholder('https://www.warcraftlogs.com/reports/...'),
                 Forms\Components\Select::make('status')
                     ->options([
                         'completed' => 'Completed',
                         'failed' => 'Failed',
                         'in_progress' => 'In Progress',
                     ])
+                    ->required(),
+                Forms\Components\Select::make('approval_status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'denied' => 'Denied',
+                    ])
+                    ->default('pending')
                     ->required(),
             ]);
     }
@@ -74,19 +85,29 @@ class RunResource extends Resource
                 Tables\Columns\TextColumn::make('key_level')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('completed_at')
-                    ->dateTime()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('time_taken_seconds')
                     ->numeric()
                     ->sortable()
                     ->formatStateUsing(fn (int $state): string => gmdate('H:i:s', $state)),
+                Tables\Columns\TextColumn::make('warcraft_log_url')
+                    ->label('Warcraft Log')
+                    ->url(fn ($record) => $record->warcraft_log_url)
+                    ->openUrlInNewTab()
+                    ->limit(30)
+                    ->tooltip(fn ($record) => $record->warcraft_log_url),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'completed' => 'success',
                         'failed' => 'danger',
                         'in_progress' => 'warning',
+                    }),
+                Tables\Columns\TextColumn::make('approval_status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'approved' => 'success',
+                        'denied' => 'danger',
+                        'pending' => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -109,13 +130,60 @@ class RunResource extends Resource
                         'failed' => 'Failed',
                         'in_progress' => 'In Progress',
                     ]),
+                Tables\Filters\SelectFilter::make('approval_status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'denied' => 'Denied',
+                    ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('approve')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->action(function (Run $record) {
+                        $record->update(['approval_status' => 'approved']);
+
+                        // Send Discord notification
+                        $discordService = new DiscordNotificationService();
+                        $discordService->sendRunApprovedNotification($record);
+                    })
+                    ->visible(fn (Run $record) => $record->approval_status !== 'approved'),
+                Tables\Actions\Action::make('deny')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->action(fn (Run $record) => $record->update(['approval_status' => 'denied']))
+                    ->visible(fn (Run $record) => $record->approval_status !== 'denied'),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('bulk_approve')
+                        ->label('Approve Selected')
+                        ->icon('heroicon-o-check')
+                        ->color('success')
+                        ->action(function ($records) {
+                            $discordService = new DiscordNotificationService();
+
+                            foreach ($records as $record) {
+                                if ($record->approval_status !== 'approved') {
+                                    $record->update(['approval_status' => 'approved']);
+                                    $discordService->sendRunApprovedNotification($record);
+                                }
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    Tables\Actions\BulkAction::make('bulk_deny')
+                        ->label('Deny Selected')
+                        ->icon('heroicon-o-x-mark')
+                        ->color('danger')
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                $record->update(['approval_status' => 'denied']);
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);

@@ -42,4 +42,8 @@ return [
         'region' => 'eu', // or 'us', 'kr', 'tw', 'cn'
     ],
 
+    'discord' => [
+        'webhook_url' => env('DISCORD_WEBHOOK_URL'),
+    ],
+
 ];

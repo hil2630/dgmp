@@ -58,4 +58,9 @@ class Team extends JetstreamTeam
     {
         return $this->hasMany(Run::class);
     }
+
+    public function seasons()
+    {
+        return $this->belongsToMany(Season::class, 'season_team');
+    }
 }

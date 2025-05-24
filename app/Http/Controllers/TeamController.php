@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Team;
+use App\Models\Season;
+use App\Models\Run;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +36,15 @@ class TeamController extends Controller
             return $userArr;
         });
 
+        // Get current active season
+        $currentSeason = Season::where('status', 'active')->first();
+
+        // Check if team is signed up for current season
+        $isSignedUpForSeason = false;
+        if ($currentSeason) {
+            $isSignedUpForSeason = $team->seasons()->where('season_id', $currentSeason->id)->exists();
+        }
+
         return Inertia::render('Teams/Show', [
             'team' => $teamArr,
             'availableRoles' => [
@@ -48,6 +59,9 @@ class TeamController extends Controller
                 'canUpdateTeam' => $team->user_id === Auth::id(),
                 'canDeleteTeam' => $team->user_id === Auth::id(),
             ],
+            'currentSeason' => $currentSeason,
+            'isSignedUpForSeason' => $isSignedUpForSeason,
+            'dungeons' => Run::DUNGEONS,
         ]);
     }
 

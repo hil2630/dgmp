@@ -28,12 +28,12 @@ class Run extends Model
         'dungeon_name',
         'key_level',
         'time_taken_seconds',
-        'completed_at',
+        'warcraft_log_url',
         'status', // 'completed', 'failed', 'in_progress'
+        'approval_status', // 'pending', 'approved', 'denied'
     ];
 
     protected $casts = [
-        'completed_at' => 'datetime',
         'time_taken_seconds' => 'integer',
         'key_level' => 'integer',
     ];
@@ -68,5 +68,20 @@ class Run extends Model
     public function getIsInProgressAttribute(): bool
     {
         return $this->status === 'in_progress';
+    }
+
+    public function getIsPendingAttribute(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    public function getIsApprovedAttribute(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    public function getIsDeniedAttribute(): bool
+    {
+        return $this->approval_status === 'denied';
     }
 }
